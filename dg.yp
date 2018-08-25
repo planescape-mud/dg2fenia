@@ -5,6 +5,7 @@
     my $script_end = 0;
 
     my $indent = 0;
+	my $i = "";
 	my @switch_stack = ();
 %}
 %%
@@ -15,17 +16,29 @@ script:  	BEGIN statement_list END
         }
         ;
 
+sr:		{
+			$indent += 4;
+			$i = (" " x $indent);
+		}
+		;
+
+sl:		{
+			$indent -= 4;
+			$i = (" " x $indent);
+		}
+		;
+
 statement_list: 
 			istmt
 		| 	statement_list istmt
 		{
-			$_[1] . $_[2];
+			"$_[1]$_[2]";
 		}
         ;
 
-istmt:		{ $indent += 4; } statement { $indent -= 4; }
+istmt:		statement
 		{
-			(" " x $indent) . $_[2];
+			"$i$_[1]";
 		}
 		;
 
@@ -33,9 +46,9 @@ elseif:
 		{
 			""
 		}
-        | 	elseif ELSEIF statement_list
+        | 	elseif ELSEIF sr statement_list sl
 		{
-			"$_[1]else if($_[2]) {\n$_[3]}\n";
+			"$_[1]${i}else if($_[2]) {\n$_[4]$i}\n";
 		}
         ;
 
@@ -43,14 +56,14 @@ case_list:
 		{
 			{ cases => "", defaults => "" };
 		}
-		| 	case_list CASE statement_list
+		| 	case_list CASE sr statement_list sl
 		{
-			$_[1]->{cases} .= "if($switch_stack[0] == $_[2]) {\n$_[3]}\n";
+			$_[1]->{cases} .= "${i}if($switch_stack[0] == $_[2]) {\n$_[4]$i}\n";
 			$_[1];
 		}
-		| 	case_list DEFAULT statement_list
+		| 	case_list DEFAULT sr statement_list sl
 		{
-			$_[1]->{defaults} .= $_[3];
+			$_[1]->{defaults} .= $_[4];
 			$_[1];
 		}
 		;
@@ -61,7 +74,7 @@ comments:
 		}
 		| 	comments COMMENT
 		{
-			"$_[1]/* $_[2] */\n";
+			"$_[1]$i/* $_[2] */\n";
 		}
 		;
 
@@ -69,28 +82,28 @@ switch:	   SWITCH
 		{
 			unshift @switch_stack, $_[1];
 		}
-			comments case_list END
+			sr comments case_list sl END
 		{
 			shift @switch_stack;
-			"for(;true;) { $_[3]$_[4]->{cases}$_[4]->{defaults} break; }";
+			"for(;true;) {\n$_[4]$_[5]->{cases}$_[5]->{defaults}${i}    break;\n$i}\n";
 		}
 		;
 
-statement: IF statement_list elseif END
+statement: IF sr statement_list sl elseif END
 		{
-			"if($_[1]) {\n$_[2]}\n$_[3]\n";
+			"if($_[1]) {\n$_[3]$i}\n$_[5]\n";
 		}
-        |  IF statement_list elseif ELSE statement_list END
+        |  IF sr statement_list sl elseif ELSE sr statement_list sl END
 		{
-			"if($_[1]) {\n$_[2]}\n$_[3]\nelse {\n$_[5]}\n";
+			"if($_[1]) {\n$_[3]$i}\n$_[5]${i}else {\n$_[8]$i}\n";
 		}
         |  WHILE statement_list END 
 		{
-			"for(;$_[1];) {\n$_[2];}\n";
+			"for(;$_[1];) {\n$_[2]$i}\n";
 		}
         |  FOREACH statement_list END 
 		{
-			"foreach(;$_[1];) {\n$_[2];}\n";
+			"foreach(;$_[1];) {\n$_[2]$i}\n";
 		}
 		|  switch
         |  BREAK
@@ -134,7 +147,7 @@ sub make_lexer {
         return ('END', '') unless defined $_;
         s/^\s*//;
 
-        m{^\s*(\*.*)$}     and return ('COMMENT', $1);
+        m{^\s*\*(.*)$}     and return ('COMMENT', $1);
         m{^\s*$}           and return ('COMMENT', '');
         m{^begin\b(.*)$}   and return ('BEGIN', $1);
         m{^if\b(.*)$}      and return ('IF', $1);
