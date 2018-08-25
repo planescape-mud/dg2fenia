@@ -1,0 +1,97 @@
+#!/usr/bin/perl
+
+%%
+
+input: 
+        |  input '('
+        {
+#			print "hi1\n";
+            "$_[1]$_[2]";
+        }
+        |  input ')'
+        {
+#			print "hi2\n";
+            "$_[1]$_[2]";
+        }
+        |  input WORD
+        {
+#			print "hi3\n";
+            "$_[1]$_[2]";
+        }
+        |  input '.'
+        {
+#			print "hi4\n";
+            "$_[1]$_[2]";
+        }
+        |  input subst
+        {
+#			print "hi5\n";
+            "$_[1]$_[2]";
+        }
+        ;
+
+subst:     '%' WORD '%'
+        {
+#			print "hi6\n";
+            "($_[2])";
+        }
+        |  '%' WORD '(' args ')' '%'
+        {
+#			print "hi7\n";
+            "($_[2]($_[4]))";
+        }
+        |  '%' WORD '.' WORD '%'
+        {
+#			print "hi8\n";
+            "($_[2].$_[4])";
+        }
+        |  '%' WORD '.' WORD '(' args ')' '%'
+        {
+#			print "hi9\n";
+            "($_[2].$_[4]($_[6]))";
+        }
+        ;
+
+args:   
+        |  args WORD
+        {
+#			print "hi10\n";
+            "$_[1]$_[2]";
+        }
+        |  args '.' 
+        {
+#			print "hi11\n";
+            "$_[1]$_[2]";
+        }
+        |  args subst
+        {
+#			print "hi12\n";
+            "$_[1]$_[2]";
+        }
+        ;
+
+%%
+
+sub make_lexer {
+    my $line = shift;
+
+    return sub {
+        my $parser = shift;
+#		print "lexer for $line\n";
+        
+        $line =~ s/^%%// and return ('WORD', '%');
+        $line =~ s/^%// and return ('%', '%');
+        $line =~ s/^\.// and return ('.', '.');
+        $line =~ s/^\(// and return ('(', '(');
+        $line =~ s/^\)// and return (')', ')');
+        $line =~ s/^([^.%()]+)// and return ('WORD', $1);
+
+        return ('', undef);
+    };
+};
+
+sub parse_subst {
+    my $line = shift;
+    my $parser=new SubstParser();
+    $parser->YYParse(yylex => &make_lexer($line));
+};
