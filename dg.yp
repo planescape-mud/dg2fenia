@@ -130,6 +130,10 @@ $i}
 		{
 			"/* $_[1] */\n";
 		}
+        |  WAIT 
+                {
+			".dg.wait(parsewait(subst(\"$_[1]\")));\n";
+                }
         |  SUBST
         {
             &SubstParser::parse_subst($_[1]) . ";\n";
@@ -171,7 +175,9 @@ sub make_lexer {
         m{^break\b(.*)$}   and return ('BREAK', $1);
         m{^default\b(.*)$} and return ('DEFAULT', $1);
         m{^halt\b(.*)$}    and return ('HALT', $1);
-        m{^return\b(.*)$}  and return ('RETURN', $1); # XXX not what you think it is
+        m{^return\b(.*)$}  and return ('RETURN', $1);
+        m{^wait\b *(.*)$}  and return ('WAIT', $1);
+
 
         return ('SUBST', $_);
     };
