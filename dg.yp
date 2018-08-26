@@ -101,22 +101,30 @@ statement: IF sr statement_list sl elseif END
 		{
 			"for(;$_[1];) {\n$_[2]$i}\n";
 		}
-        |  FOREACH statement_list END 
+        |  FOREACH sr sr statement_list sl sl END 
 		{
-			"foreach(;$_[1];) {\n$_[2]$i}\n";
+                        qq {{
+$i    var i, words;
+$i    words = subst("$_[1]->[1]").split(" ");
+$i    for(i=0;i<words.size();i=i+1) {
+$i        set("$_[1]->[0]", words[i]);
+$_[4]
+$i    }
+$i}
+}
 		}
-		|  switch
+        |  switch
         |  BREAK
 		{
 			"break;\n";
 		}
         |  HALT
 		{
-			"return;\n";
+			"return return_value;\n";
 		}
         |  RETURN
 		{
-			"return $_[1];\n";
+			"return_value = $_[1];\n";
 		}
         |  COMMENT
 		{
@@ -157,13 +165,13 @@ sub make_lexer {
         m{^end\b(.*)$}     and return ('END', $1);
         m{^while\b(.*)$}   and return ('WHILE', $1);
         m{^done\b(.*)$}    and return ('END', $1);
-        m{^foreach\b(.*)$} and return ('FOREACH', $1);
+        m{^foreach\b *([^ ]+) *(.*)$} and return ('FOREACH', [$1, $2]);
         m{^switch\b(.*)$}  and return ('SWITCH', $1);
         m{^case\b(.*)$}    and return ('CASE', $1);
         m{^break\b(.*)$}   and return ('BREAK', $1);
         m{^default\b(.*)$} and return ('DEFAULT', $1);
         m{^halt\b(.*)$}    and return ('HALT', $1);
-        m{^return\b(.*)$}  and return ('RETURN', $1);
+        m{^return\b(.*)$}  and return ('RETURN', $1); # XXX not what you think it is
 
         return ('SUBST', $_);
     };
