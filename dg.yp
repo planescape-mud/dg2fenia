@@ -48,7 +48,7 @@ elseif:
 		}
         | 	elseif ELSEIF sr statement_list sl
 		{
-			"$_[1]${i}else if($_[2]) {\n$_[4]$i}\n";
+			"$_[1]${i}else if(eval(subst(\"$_[2]\"))) {\n$_[4]$i}\n";
 		}
         ;
 
@@ -91,11 +91,18 @@ switch:	   SWITCH
 
 statement: IF sr statement_list sl elseif END
 		{
-			"if($_[1]) {\n$_[3]$i}\n$_[5]\n";
+			qq{if(eval(subst("$_[1]"))) {
+$_[3]$i}
+$_[5]
+}
 		}
         |  IF sr statement_list sl elseif ELSE sr statement_list sl END
 		{
-			"if($_[1]) {\n$_[3]$i}\n$_[5]${i}else {\n$_[8]$i}\n";
+			qq{if(eval(subst("$_[1]"))) {
+$_[3]$i}
+$_[5]${i}else {
+$_[8]$i}
+}
 		}
         |  WHILE statement_list END 
 		{
@@ -159,24 +166,24 @@ sub make_lexer {
         return ('END', '') unless defined $_;
         s/^\s*//;
 
-        m{^\s*\*(.*)$}     and return ('COMMENT', $1);
-        m{^\s*$}           and return ('COMMENT', '');
-        m{^begin\b(.*)$}   and return ('BEGIN', $1);
-        m{^if\b(.*)$}      and return ('IF', $1);
-        m{^elseif\b(.*)$}  and return ('ELSEIF', $1);
-        m{^else\b(.*)$}    and return ('ELSE', $1);
-        m{^endif\b(.*)$}   and return ('END', $1);
-        m{^end\b(.*)$}     and return ('END', $1);
-        m{^while\b(.*)$}   and return ('WHILE', $1);
-        m{^done\b(.*)$}    and return ('END', $1);
+        m{^\s*\*(.*)$}      and return ('COMMENT', $1);
+        m{^\s*$}            and return ('COMMENT', '');
+        m{^begin\b(.*)$}    and return ('BEGIN', $1);
+        m{^if\b *(.*)$}     and return ('IF', $1);
+        m{^elseif\b *(.*)$} and return ('ELSEIF', $1);
+        m{^else\b(.*)$}     and return ('ELSE', $1);
+        m{^endif\b(.*)$}    and return ('END', $1);
+        m{^end\b(.*)$}      and return ('END', $1);
+        m{^while\b(.*)$}    and return ('WHILE', $1);
+        m{^done\b(.*)$}     and return ('END', $1);
         m{^foreach\b *([^ ]+) *(.*)$} and return ('FOREACH', [$1, $2]);
-        m{^switch\b(.*)$}  and return ('SWITCH', $1);
-        m{^case\b(.*)$}    and return ('CASE', $1);
-        m{^break\b(.*)$}   and return ('BREAK', $1);
-        m{^default\b(.*)$} and return ('DEFAULT', $1);
-        m{^halt\b(.*)$}    and return ('HALT', $1);
-        m{^return\b(.*)$}  and return ('RETURN', $1);
-        m{^wait\b *(.*)$}  and return ('WAIT', $1);
+        m{^switch\b(.*)$}   and return ('SWITCH', $1);
+        m{^case\b(.*)$}     and return ('CASE', $1);
+        m{^break\b(.*)$}    and return ('BREAK', $1);
+        m{^default\b(.*)$}  and return ('DEFAULT', $1);
+        m{^halt\b(.*)$}     and return ('HALT', $1);
+        m{^return\b(.*)$}   and return ('RETURN', $1);
+        m{^wait\b *(.*)$}   and return ('WAIT', $1);
 
 
         return ('SUBST', $_);
