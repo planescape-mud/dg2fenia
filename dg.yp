@@ -58,7 +58,7 @@ case_list:
 		}
 		| 	case_list CASE sr statement_list sl
 		{
-			$_[1]->{cases} .= "${i}if($switch_stack[0] == $_[2]) {\n$_[4]$i}\n";
+			$_[1]->{cases} .= "${i}if(eval(subst(\"$switch_stack[0] == $_[2]\"))) {\n$_[4]$i}\n";
 			$_[1];
 		}
 		| 	case_list DEFAULT sr statement_list sl
@@ -177,8 +177,8 @@ sub make_lexer {
         m{^while\b *(.*)$}  and return ('WHILE', $1);
         m{^done\b(.*)$}     and return ('END', $1);
         m{^foreach\b *([^ ]+) *(.*)$} and return ('FOREACH', [$1, $2]);
-        m{^switch\b(.*)$}   and return ('SWITCH', $1);
-        m{^case\b(.*)$}     and return ('CASE', $1);
+        m{^switch\b *(.*)$} and return ('SWITCH', $1);
+        m{^case\b *(.*)$}   and return ('CASE', $1);
         m{^break\b(.*)$}    and return ('BREAK', $1);
         m{^default\b(.*)$}  and return ('DEFAULT', $1);
         m{^halt\b(.*)$}     and return ('HALT', $1);
